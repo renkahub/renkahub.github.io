@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>hub</title>
+    <script>
+    const loginPage = "loginsuccessful.html";
+
+    if (!document.referrer.includes(loginPage)) {
+      alert("ログイン画面からアクセスしてください。");
+       window.location.href = "login1.html";
+    }
+    </script>
+    <style>
+      .base {background-color: #000000;}
+      .service {border: none; background-color: #000000;}
+      body {background-color: #000000; text-align: center;}
+    </style>
+  </head>
+  <body>
+    <div class="base">
+      <p><button class="service" onclick="location.href='thread.html'">スレッド</button></p>
+    </div>
+  </body>
+</html>
