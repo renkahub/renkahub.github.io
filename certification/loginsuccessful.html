@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <script>
+    // ログイン画面のURL（自分の環境に合わせて書き換えてください）
+    const loginPage = "login1.html";
+
+    // 前のページのURLを確認
+    if (!document.referrer.includes(loginPage)) {
+      alert("ログイン画面からアクセスしてください。");
+       window.location.href = loginPage;
+    }
+    </script>
+    <meta charset="UTF-8">
+    <title>2段階で認証します✅</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #000000; }
+        .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }
+        h2 { text-align: center; color: #333; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #message { color: red; text-align: center; font-size: 0.9rem; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>Login</h2>
+    <input type="password" id="password" placeholder="パスワード">
+    <button onclick="checkLogin()">ログイン</button>
+    <p id="message"></p>
+</div>
+
+<script>
+  async function checkLogin() {
+    const passwordInput = document.getElementById("password").value;
+    
+    const msgUint8 = new TextEncoder().encode(passwordInput);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashedInput = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    const correctHash = "a2912dd0c114f03d4867fa54c27f0dc5a842d9e377a046bd19d5889f5fb6c447";
+
+    if (hashedInput === correctHash) {
+        alert("Login successful");
+        window.location.href = "https://renkahub.github.io/hub.html";
+    } else {
+        alert("The password is incorrect");
+    }
+  }
+</script>
+
+</body>
+</html>
