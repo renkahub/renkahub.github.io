@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <title>ログイン画面</title>
     <style>
-        /* 簡単なデザイン設定 */
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; }
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #000000; }
         .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }
         h2 { text-align: center; color: #333; }
         input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
@@ -27,20 +26,18 @@
   async function checkLogin() {
     const passwordInput = document.getElementById("password").value;
     
-    // 入力された文字をハッシュ化する処理
     const msgUint8 = new TextEncoder().encode(passwordInput);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashedInput = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // 事前に生成しておいた「正解のハッシュ値」と比較
     const correctHash = "94fc203401f1ef1218c98675c583021afe2da4f7a33316c79187fda3718f4dbe";
 
     if (hashedInput === correctHash) {
-        alert("ログイン成功！");
-        window.location.href = index.html;
+        alert("Login successful");
+        window.location.href = "index.html";
     } else {
-        alert("パスワードが違います。");
+        alert("The password is incorrect");
     }
   }
 </script>
