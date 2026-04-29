@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMLエディター (ファイル名指定機能付)</title>
+    <style>
+        body { font-family: sans-serif; height: 100vh; margin: 0; display: flex; flex-direction: column; background: #eee; }
+        .toolbar { padding: 10px 20px; background: #333; color: white; display: flex; gap: 15px; align-items: center; }
+        .filename-input { padding: 6px; border-radius: 4px; border: 1px solid #ccc; width: 180px; }
+        .main { flex: 1; display: flex; overflow: hidden; gap: 5px; padding: 5px; }
+        textarea, iframe { flex: 1; border: 1px solid #ccc; border-radius: 4px; background: white; }
+        textarea { font-family: 'Consolas', 'Monaco', monospace; padding: 15px; resize: none; font-size: 14px; }
+        button { padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #218838; }
+        .pane { display: flex; flex-direction: column; flex: 1; }
+        .label { font-size: 12px; color: #666; margin-bottom: 2px; }
+        .ext { margin-left: -10px; font-size: 14px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <strong style="margin-right: auto;">HTML Editor</strong>
+        <input type="text" id="fileName" class="filename-input" placeholder="ファイル名を入力">
+        <span class="ext">.html</span>
+        <button onclick="downloadHTML()">ダウンロード</button>
+    </div>
+
+    <div class="main">
+        <div class="pane">
+            <div class="label">編集エリア</div>
+            <textarea id="htmlInput" placeholder="ここにHTMLを書いてください..." oninput="updatePreview()"></textarea>
+        </div>
+        <div class="pane">
+            <div class="label">プレビュー</div>
+            <iframe id="preview"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('htmlInput');
+        const preview = document.getElementById('preview');
+        const fileNameInput = document.getElementById('fileName');
+
+        function updatePreview() {
+            const content = input.value;
+            const doc = preview.contentDocument || preview.contentWindow.document;
+            doc.open();
+            doc.write(content);
+            doc.close();
+        }
+
+        function downloadHTML() {
+            const content = input.value;
+            if (!content) return alert("内容が空です");
+
+            // ファイル名を取得（未入力なら index にする）
+            let fileName = fileNameInput.value.trim();
+            if (!fileName) fileName = 'index';
+            
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName + '.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 初期サンプル
+        input.value = "<h1>Hello!</h1>\n<p>ファイル名を指定して保存できます。</p>";
+        updatePreview();
+    </script>
+
+</body>
+</html>
