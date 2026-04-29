@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Web Editor</title>
+    <style>
+        body { font-family: sans-serif; height: 100vh; margin: 0; display: flex; flex-direction: column; background: #222; color: white; overflow: hidden; }
+        /* メニュー画面（モーダル） */
+        #menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .menu-card { background: #333; padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .menu-card h2 { margin-top: 0; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .type-btn { padding: 15px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.2s; }
+        .html-btn { background: #e34c26; color: white; }
+        .css-btn { background: #264de4; color: white; }
+        .js-btn { background: #f7df1e; color: black; }
+        .type-btn:hover { transform: translateY(-3px); opacity: 0.9; }
+
+        /* エディター画面 */
+        .toolbar { padding: 10px 20px; background: #111; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #444; }
+        .main { flex: 1; display: flex; overflow: hidden; }
+        .pane { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #444; }
+        textarea { flex: 1; background: #1e1e1e; color: #d4d4d4; font-family: 'Consolas', monospace; padding: 15px; border: none; resize: none; font-size: 16px; line-height: 1.5; outline: none; }
+        iframe { flex: 1; background: white; border: none; }
+        .label { background: #333; padding: 4px 12px; font-size: 12px; color: #aaa; text-transform: uppercase; }
+        input[type="text"] { background: #333; border: 1px solid #555; color: white; padding: 6px 10px; border-radius: 4px; }
+        .save-btn { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .reset-btn { background: #555; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <!-- メニュー画面 -->
+    <div id="menu-overlay">
+        <div class="menu-card">
+            <h2>作成するファイルを選択</h2>
+            <div class="btn-group">
+                <button class="type-btn html-btn" onclick="startEditor('html')">HTML Document</button>
+                <button class="type-btn css-btn" onclick="startEditor('css')">CSS Stylesheet</button>
+                <button class="type-btn js-btn" onclick="startEditor('js')">JavaScript</button>
+            </div>
+            <p style="font-size: 12px; color: #888; margin-top: 15px;">※ブラウザに前回の続きが保存されている場合は復元されます。</p>
+        </div>
+    </div>
+
+    <!-- メインエディター -->
+    <div class="toolbar">
+        <strong>Editor</strong>
+        <input type="text" id="fileName" placeholder="filename">
+        <span id="extLabel">.html</span>
+        <button class="save-btn" onclick="downloadFile()">ダウンロード</button>
+        <button class="reset-btn" onclick="resetEditor()" style="margin-left: auto;">新規作成に戻る</button>
+    </div>
+
+    <div class="main">
+        <div class="pane">
+            <div class="label">Editor</div>
+            <textarea id="editor" oninput="handleInput()" onkeydown="handleKeyDown(event)"></textarea>
+        </div>
+        <div class="pane" id="previewPane">
+            <div class="label">Preview</div>
+            <iframe id="preview"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const fileNameInput = document.getElementById('fileName');
+        const extLabel = document.getElementById('extLabel');
+        const overlay = document.getElementById('menu-overlay');
+
+        let currentType = 'html';
+
+        // 1. メニュー選択
+        function startEditor(type) {
+            currentType = type;
+            overlay.style.display = 'none';
+            extLabel.textContent = '.' + type;
+            
+            // プレビューの表示・非表示（CSS/JS単体の時は非表示でもOKですが今回は簡易表示）
+            document.getElementById('previewPane').style.display = (type === 'html') ? 'flex' : 'none';
+
+            // LocalStorageから復元
+            const saved = localStorage.getItem('editor_content_' + type);
+            if (saved) {
+                editor.value = saved;
+            } else {
+                setDefaultContent(type);
+            }
+            updatePreview();
+        }
+
+        function setDefaultContent(type) {
+            const templates = {
+                html: "<!DOCTYPE html>\n<html>\n<head>\n<style>\n  h1 { color: red; }\n</style>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>",
+                css: "body {\n  background-color: #f0f0f0;\n  font-family: sans-serif;\n}",
+                js: "console.log('Hello from JavaScript!');\nalert('Hello!');"
+            };
+            editor.value = templates[type];
+        }
+
+        // 2. 自動保存 & プレビュー更新
+        function handleInput() {
+            localStorage.setItem('editor_content_' + currentType, editor.value);
+            updatePreview();
+        }
+
+        function updatePreview() {
+            if (currentType !== 'html') return;
+            const doc = preview.contentDocument || preview.contentWindow.document;
+            doc.open();
+            doc.write(editor.value);
+            doc.close();
+        }
+
+        // 3. 自動補完機能
+        function handleKeyDown(e) {
+            const pairs = {
+                '{': '}',
+                '[': ']',
+                '(': ')',
+                '"': '"',
+                "'": "'",
+                '<': '>'
+            };
+
+            if (pairs[e.key]) {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                const val = editor.value;
+                
+                editor.value = val.substring(0, start) + e.key + pairs[e.key] + val.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 1;
+            }
+            
+            // Tabキーでスペース挿入
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + "  " + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 2;
+            }
+        }
+
+        // 4. ダウンロード
+        function downloadFile() {
+            const content = editor.value;
+            let name = fileNameInput.value.trim() || 'file';
+            const blob = new Blob([content], { type: 'text/' + currentType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name + '.' + currentType;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function resetEditor() {
+            if(confirm("メニューに戻りますか？（現在の内容は保存されます）")) {
+                overlay.style.display = 'flex';
+            }
+        }
+    </script>
+</body>
+</html>
