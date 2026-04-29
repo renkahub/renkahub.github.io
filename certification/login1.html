@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>ログイン画面</title>
     <style>
+        .free {border: none; background-color: #000000;}
         body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #000000; }
         .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }
         h2 { text-align: center; color: #333; }
@@ -21,6 +22,8 @@
     <button onclick="checkLogin()">ログイン</button>
     <p id="message"></p>
 </div>
+
+<button class="free" onclick="location.href='https://renkahub.github.io/'"><font color="#0000ff"><p>freeはこちら</p></font></button>
 
 <script>
   async function checkLogin() {
