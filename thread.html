@@ -1,13 +1,5 @@
 <html>
   <head>
-    <script>
-    const loginPage = "hub.html";
-
-    if (!document.referrer.includes(loginPage)) {
-      alert("ログインを行ってください");
-       window.location.href = "certification/login1.html";
-    }
-    </script>
     <title>RENKALAB threads</title>
     <style>
       .upper{background-color: #ffffff; text-align: center;}
@@ -33,5 +25,13 @@
         data-loading="lazy"
         crossorigin="anonymous"
         async>
+  </script>
+  <script>
+    const loginPage = "hub.html";
+
+    if (!document.referrer.includes(loginPage)) {
+      alert("ログインを行ってください");
+       window.location.href = "certification/login1.html";
+    }
   </script>
 </html>
