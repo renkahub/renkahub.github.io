@@ -11,8 +11,10 @@
     </script>
     <style>
       .heads {background-color: #ffffff;}
-      .base {background-color: #000000;}
+      .base {background-color: #000000;　display: flex;}
       .service {border: none; background-color: #000000;}
+      .servicebase {background-color: #000000; width: 40%;}
+      .infomationbase {background-color: #ffffff; width: 60%;}
       body {background-color: #000000; text-align: center;}
     </style>
   </head>
@@ -21,7 +23,12 @@
       <font color="#ff0000" size="4"><p>HUB</p></font>
     </div>
     <div class="base">
-      <p><button class="service" onclick="location.href='thread.html'"><font color="#ffffff">threads</font></button></p>
+      <div class="servicebase">
+        <p><button class="service" onclick="location.href='thread.html'"><font color="#ffffff">threads</font></button></p>
+      </div>
+      <div class="infomationbase">
+        <h2>ハブを更新しました</h2>
+      </div>
     </div>
   </body>
 </html>
