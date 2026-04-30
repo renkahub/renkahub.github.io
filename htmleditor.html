@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <script>
+    const loginPage = "hub.html";
+
+    if (!document.referrer.includes(loginPage)) {
+      alert("ログイン画面からアクセスしてください。");
+       window.location.href = "certification/login1.html";
+    }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>htmleditor</title>
