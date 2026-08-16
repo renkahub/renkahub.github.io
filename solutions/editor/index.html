@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Webコードエディター（完全版）</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="sidebar">
+    <img style="width: 100%;" src="imidiot-logo.jpg">
+    <h2>新規ファイル</h2>
+    <button onclick="createTab('html')">HTML</button>
+    <button onclick="createTab('css')">CSS</button>
+    <button onclick="createTab('js')">JavaScript</button>
+    <button onclick="createTab('python')">Python</button>
+    <div class="sidebar-resizer" id="sidebar-resizer"></div>
+  </div>
+
+  <div class="main">
+    <div class="tabs" id="tabs"></div>
+
+    <div class="editor-header">
+      <button id="run-btn">実行 / プレビュー</button>
+      <button id="save-btn">保存</button>
+      <button id="load-btn">読み込み</button>
+      <button id="theme-btn">ライト / ダーク</button>
+      <button id="toggle-sidebar-btn">サイドバー表示/非表示</button>
+      <button id="fullscreen-btn">全画面プレビュー</button>
+      <button id="open-newtab-btn">新しいタブで開く</button>
+      <input type="file" id="file-input" style="display:none;">
+    </div>
+
+    <div class="editor-container">
+      <textarea id="editor"></textarea>
+
+      <div class="preview" id="preview-area">
+        <div class="preview-header">HTML プレビュー</div>
+        <iframe id="html-preview"></iframe>
+      </div>
+
+      <div class="output" id="output-area" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>
