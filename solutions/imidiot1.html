@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Webコードエディター</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #000000;
+    --sidebar-bg: #222;
+    --sidebar-text: #fff;
+    --editor-bg: #f0f0f0;
+    --preview-bg: #ffffff;
+    --output-bg: #111;
+    --output-text: #0f0;
+  }
+
+  body.dark {
+    --bg: #1e1e1e;
+    --text: #e0e0e0;
+    --sidebar-bg: #111;
+    --sidebar-text: #ddd;
+    --editor-bg: #2a2a2a;
+    --preview-bg: #1e1e1e;
+    --output-bg: #000;
+    --output-text: #0f0;
+  }
+
+  body {
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    display: flex;
+    height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .sidebar {
+    width: 180px;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  .sidebar button {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 8px;
+    border: none;
+    background: #444;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .sidebar button.active {
+    background: #0a84ff;
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .editor-header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--editor-bg);
+  }
+
+  .editor-header button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background: #0a84ff;
+    color: #fff;
+  }
+
+  .editor-container {
+    flex: 1;
+    display: flex;
+    border-top: 1px solid #ccc;
+  }
+
+  textarea {
+    flex: 1;
+    border: none;
+    padding: 10px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    background: var(--preview-bg);
+    color: var(--text);
+    border-right: 1px solid #ccc;
+  }
+
+  .preview {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .preview-header {
+    padding: 6px 10px;
+    background: var(--editor-bg);
+    border-bottom: 1px solid #ccc;
+    font-size: 13px;
+    font-weight: bold;
+  }
+
+  iframe {
+    flex: 1;
+    border: none;
+    background: var(--preview-bg);
+  }
+
+  .output {
+    flex: 1;
+    padding: 10px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    overflow: auto;
+    background: var(--output-bg);
+    color: var(--output-text);
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2>言語選択</h2>
+  <button data-lang="html" class="active">HTML</button>
+  <button data-lang="css">CSS</button>
+  <button data-lang="js">JavaScript</button>
+  <button data-lang="python">Python</button>
+</div>
+
+<div class="main">
+  <div class="editor-header">
+    <span id="current-lang-label">HTML エディター</span>
+    <button id="run-btn">実行 / プレビュー</button>
+    <button id="save-btn">保存</button>
+    <button id="load-btn">読み込み</button>
+    <button id="theme-btn">ライト / ダーク</button>
+    <input type="file" id="file-input" style="display:none;">
+  </div>
+
+  <div class="editor-container">
+    <textarea id="editor"></textarea>
+
+    <div class="preview" id="preview-area">
+      <div class="preview-header">HTML プレビュー</div>
+      <iframe id="html-preview"></iframe>
+    </div>
+
+    <div class="output" id="output-area" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js"></script>
+<script>
+  const buttons = document.querySelectorAll(".sidebar button");
+  const editor = document.getElementById("editor");
+  const runBtn = document.getElementById("run-btn");
+  const saveBtn = document.getElementById("save-btn");
+  const loadBtn = document.getElementById("load-btn");
+  const fileInput = document.getElementById("file-input");
+  const themeBtn = document.getElementById("theme-btn");
+
+  const currentLangLabel = document.getElementById("current-lang-label");
+  const previewArea = document.getElementById("preview-area");
+  const htmlPreview = document.getElementById("html-preview");
+  const outputArea = document.getElementById("output-area");
+
+  let currentLang = "html";
+
+  const codeStore = {
+    html: "<!DOCTYPE html>\n<html>\n<head>\n<meta charset='UTF-8'>\n<title>プレビュー</title>\n</head>\n<body>\n<h1>こんにちは HTML</h1>\n</body>\n</html>",
+    css: "body {\n  background: #f0f0f0;\n  color: #333;\n}",
+    js: "console.log('Hello JavaScript');",
+    python: "print('Hello Python')"
+  };
+
+  editor.value = codeStore[currentLang];
+
+  buttons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      buttons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      switchLanguage(btn.getAttribute("data-lang"));
+    });
+  });
+
+  function switchLanguage(lang) {
+    codeStore[currentLang] = editor.value;
+    currentLang = lang;
+    editor.value = codeStore[currentLang];
+    currentLangLabel.textContent = lang.toUpperCase() + " エディター";
+
+    if (lang === "html") {
+      previewArea.style.display = "flex";
+      outputArea.style.display = "none";
+    } else {
+      previewArea.style.display = "none";
+      outputArea.style.display = "block";
+    }
+  }
+
+  function runHTML(code) {
+    const doc = htmlPreview.contentDocument;
+    doc.open();
+    doc.write(code);
+    doc.close();
+  }
+
+  function runJS(code) {
+    try {
+      new Function(code)();
+      outputArea.textContent = "JavaScript を実行しました。\n結果はコンソールを確認してください。";
+    } catch (e) {
+      outputArea.textContent = "エラー:\n" + e;
+    }
+  }
+
+  function runCSS(code) {
+    let styleTag = document.getElementById("live-style");
+    if (!styleTag) {
+      styleTag = document.createElement("style");
+      styleTag.id = "live-style";
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = code;
+    outputArea.textContent = "CSS を適用しました。";
+  }
+
+  let pyodideReady = loadPyodide();
+
+  async function runPython(code) {
+    outputArea.textContent = "Python 実行中...";
+    try {
+      const pyodide = await pyodideReady;
+      const result = await pyodide.runPythonAsync(code);
+      outputArea.textContent = String(result ?? "完了 (戻り値なし)");
+    } catch (e) {
+      outputArea.textContent = "エラー:\n" + e;
+    }
+  }
+
+  runBtn.addEventListener("click", () => {
+    const code = editor.value;
+    if (currentLang === "html") runHTML(code);
+    else if (currentLang === "js") runJS(code);
+    else if (currentLang === "css") runCSS(code);
+    else if (currentLang === "python") runPython(code);
+  });
+
+  saveBtn.addEventListener("click", () => {
+    const code = editor.value;
+    const ext = { html: "html", css: "css", js: "js", python: "py" }[currentLang];
+    const defaultName = `code.${ext}`;
+    const fileName = prompt("保存するファイル名を入力してください", defaultName);
+    if (!fileName) return;
+
+    const blob = new Blob([code], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  });
+
+  loadBtn.addEventListener("click", () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      editor.value = reader.result;
+    };
+    reader.readAsText(file);
+  });
+
+  themeBtn.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Webコードエディター（タブ対応）</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #000000;
+    --sidebar-bg: #222;
+    --sidebar-text: #fff;
+    --editor-bg: #f0f0f0;
+    --preview-bg: #ffffff;
+    --output-bg: #111;
+    --output-text: #0f0;
+    --tab-bg: #ddd;
+    --tab-active-bg: #0a84ff;
+    --tab-active-text: #fff;
+  }
+
+  body.dark {
+    --bg: #1e1e1e;
+    --text: #e0e0e0;
+    --sidebar-bg: #111;
+    --sidebar-text: #ddd;
+    --editor-bg: #2a2a2a;
+    --preview-bg: #1e1e1e;
+    --output-bg: #000;
+    --output-text: #0f0;
+    --tab-bg: #333;
+    --tab-active-bg: #0a84ff;
+    --tab-active-text: #fff;
+  }
+
+  body {
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    display: flex;
+    height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .sidebar {
+    width: 180px;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  .sidebar button {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 8px;
+    border: none;
+    background: #444;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* タブ */
+  .tabs {
+    display: flex;
+    background: var(--tab-bg);
+    padding: 5px;
+    gap: 5px;
+  }
+
+  .tab {
+    padding: 6px 10px;
+    background: var(--tab-bg);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tab.active {
+    background: var(--tab-active-bg);
+    color: var(--tab-active-text);
+  }
+
+  .tab-close {
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .editor-header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--editor-bg);
+  }
+
+  .editor-header button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background: #0a84ff;
+    color: #fff;
+  }
+
+  .editor-container {
+    flex: 1;
+    display: flex;
+    border-top: 1px solid #ccc;
+  }
+
+  textarea {
+    flex: 1;
+    border: none;
+    padding: 10px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    background: var(--preview-bg);
+    color: var(--text);
+    border-right: 1px solid #ccc;
+  }
+
+  .preview {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .preview-header {
+    padding: 6px 10px;
+    background: var(--editor-bg);
+    border-bottom: 1px solid #ccc;
+    font-size: 13px;
+    font-weight: bold;
+  }
+
+  iframe {
+    flex: 1;
+    border: none;
+    background: var(--preview-bg);
+  }
+
+  .output {
+    flex: 1;
+    padding: 10px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    overflow: auto;
+    background: var(--output-bg);
+    color: var(--output-text);
+  }
+
+  .tab {
+    transition: transform 0.25s ease, opacity 0.2s ease;
+  }
+
+  .tab.dragging {
+    opacity: 0.7;
+    transform: scale(1.08);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .tab.placeholder {
+    opacity: 0.3;
+    transform: scale(0.9);
+  }
+
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2>新規ファイル</h2>
+  <button onclick="createTab('html')">HTML</button>
+  <button onclick="createTab('css')">CSS</button>
+  <button onclick="createTab('js')">JavaScript</button>
+  <button onclick="createTab('python')">Python</button>
+</div>
+
+<div class="main">
+
+  <!-- タブ -->
+  <div class="tabs" id="tabs"></div>
+
+  <div class="editor-header">
+    <button id="run-btn">実行 / プレビュー</button>
+    <button id="save-btn">保存</button>
+    <button id="load-btn">読み込み</button>
+    <button id="theme-btn">ライト / ダーク</button>
+    <input type="file" id="file-input" style="display:none;">
+  </div>
+
+  <div class="editor-container">
+    <textarea id="editor"></textarea>
+
+    <div class="preview" id="preview-area">
+      <div class="preview-header">HTML プレビュー</div>
+      <iframe id="html-preview"></iframe>
+    </div>
+
+    <div class="output" id="output-area" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js"></script>
+<script>
+  const tabs = document.getElementById("tabs");
+  const editor = document.getElementById("editor");
+  const previewArea = document.getElementById("preview-area");
+  const outputArea = document.getElementById("output-area");
+  const htmlPreview = document.getElementById("html-preview");
+
+  const runBtn = document.getElementById("run-btn");
+  const saveBtn = document.getElementById("save-btn");
+  const loadBtn = document.getElementById("load-btn");
+  const fileInput = document.getElementById("file-input");
+  const themeBtn = document.getElementById("theme-btn");
+
+  let files = [];
+  let activeFile = null;
+
+  function createTab(lang) {
+    const id = Date.now();
+    const name = `${lang.toUpperCase()}-${id}`;
+
+    const file = {
+      id,
+      name,
+      lang,
+      code: getDefaultCode(lang)
+    };
+
+    files.push(file);
+    renderTabs();
+    switchTab(id);
+  }
+
+  function getDefaultCode(lang) {
+    return {
+      html: "<!DOCTYPE html>\n<html>\n<head>\n<meta charset='UTF-8'>\n<title>プレビュー</title>\n</head>\n<body>\n<h1>新規 HTML</h1>\n</body>\n</html>",
+      css: "body {\n  background: #f0f0f0;\n}",
+      js: "console.log('Hello JS');",
+      python: "print('Hello Python')"
+    }[lang];
+  }
+
+function renderTabs() {
+  tabs.innerHTML = "";
+
+  files.forEach((file, index) => {
+    const tab = document.createElement("div");
+    tab.className = "tab" + (file.id === activeFile ? " active" : "");
+    tab.draggable = true;
+    tab.dataset.index = index;
+
+    tab.innerHTML = `
+      ${file.name}
+      <span class="tab-close" onclick="closeTab(${file.id})">×</span>
+    `;
+
+    tab.onclick = () => switchTab(file.id);
+
+    // ★ドラッグ開始
+    tab.addEventListener("dragstart", (e) => {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", index);
+
+      tab.classList.add("dragging");
+    });
+
+    // ★ドラッグ終了
+    tab.addEventListener("dragend", () => {
+      tab.classList.remove("dragging");
+
+      // 全タブの placeholder を消す
+      document.querySelectorAll(".placeholder").forEach(p => p.classList.remove("placeholder"));
+    });
+
+    // ★ドラッグ中に上に乗った時
+    tab.addEventListener("dragover", (e) => {
+      e.preventDefault();
+
+      const fromIndex = Number(e.dataTransfer.getData("text/plain"));
+      const toIndex = Number(tab.dataset.index);
+
+      if (fromIndex === toIndex) return;
+
+      // ★アニメーション用 placeholder
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("placeholder"));
+      tab.classList.add("placeholder");
+    });
+
+    // ★ドロップされた時（並び替え）
+    tab.addEventListener("drop", (e) => {
+      e.preventDefault();
+
+      const fromIndex = Number(e.dataTransfer.getData("text/plain"));
+      const toIndex = Number(tab.dataset.index);
+
+      if (fromIndex === toIndex) return;
+
+      const moved = files.splice(fromIndex, 1)[0];
+      files.splice(toIndex, 0, moved);
+
+      renderTabs();
+    });
+
+    tabs.appendChild(tab);
+  });
+}
+
+function switchTab(id) {
+  activeFile = id;
+  const file = files.find(f => f.id === id);
+  editor.value = file.code;
+
+  // 表示切り替え
+  if (file.lang === "html") {
+    previewArea.style.display = "flex";
+    outputArea.style.display = "none";
+  } else {
+    previewArea.style.display = "none";
+    outputArea.style.display = "block";
+  }
+
+  renderTabs();
+
+  // ★★★ タブ切り替え時に自動プレビュー更新 ★★★
+  if (file.lang === "html") {
+    runHTML(file.code);
+  } else if (file.lang === "css") {
+    runCSS(file.code);
+  } else if (file.lang === "js") {
+    runJS(file.code);
+  } else if (file.lang === "python") {
+    runPython(file.code);
+  }
+}
+
+
+  function closeTab(id) {
+    files = files.filter(f => f.id !== id);
+    if (activeFile === id) {
+      activeFile = files.length ? files[0].id : null;
+    }
+    renderTabs();
+    if (activeFile) switchTab(activeFile);
+    else editor.value = "";
+  }
+
+  editor.addEventListener("input", () => {
+    const file = files.find(f => f.id === activeFile);
+    if (file) file.code = editor.value;
+  });
+
+  function runHTML(code) {
+    const doc = htmlPreview.contentDocument;
+    doc.open();
+    doc.write(code);
+    doc.close();
+  }
+
+  function runJS(code) {
+    try {
+      new Function(code)();
+      outputArea.textContent = "JavaScript を実行しました。";
+    } catch (e) {
+      outputArea.textContent = "エラー:\n" + e;
+    }
+  }
+
+  function runCSS(code) {
+    let styleTag = document.getElementById("live-style");
+    if (!styleTag) {
+      styleTag = document.createElement("style");
+      styleTag.id = "live-style";
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = code;
+    outputArea.textContent = "CSS を適用しました。";
+  }
+
+  let pyodideReady = loadPyodide();
+
+  async function runPython(code) {
+    outputArea.textContent = "Python 実行中...";
+    try {
+      const pyodide = await pyodideReady;
+      const result = await pyodide.runPythonAsync(code);
+      outputArea.textContent = String(result ?? "完了");
+    } catch (e) {
+      outputArea.textContent = "エラー:\n" + e;
+    }
+  }
+
+  runBtn.addEventListener("click", () => {
+    const file = files.find(f => f.id === activeFile);
+    if (!file) return;
+
+    const code = file.code;
+
+    if (file.lang === "html") runHTML(code);
+    else if (file.lang === "css") runCSS(code);
+    else if (file.lang === "js") runJS(code);
+    else if (file.lang === "python") runPython(code);
+  });
+
+  saveBtn.addEventListener("click", () => {
+    const file = files.find(f => f.id === activeFile);
+    if (!file) return;
+
+    const ext = file.lang === "python" ? "py" : file.lang;
+    const fileName = prompt("保存するファイル名", `${file.name}.${ext}`);
+    if (!fileName) return;
+
+    const blob = new Blob([file.code], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  });
+
+  loadBtn.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      createTab("html");
+      const f = files.find(f => f.id === activeFile);
+      f.code = reader.result;
+      editor.value = reader.result;
+    };
+    reader.readAsText(file);
+  });
+
+  themeBtn.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+  });
+</script>
+
+</body>
+</html>
