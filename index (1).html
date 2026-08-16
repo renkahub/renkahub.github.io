@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset='UTF-8'>
+<title>iMidiot-useful document editor</title>
+<style>
+body {background-color: black;}
+p {color: white;}
+</style>
+</head>
+<body>
+<p><font size="5">iMidiot</font>- make it free!!!<select id="language"><option>en</option><option>ja</option></select><button onclick="reLoad();">re-load</button></p>
+<img style="width: 100%;" src="imidiot-logo.jpg">
+<p style="text-align: center;"><font size="6">Make it free!!!</font><br>Easy-to-use, feature-rich editor<br><br><font size="6">Get Started!!!</font><br>Access to all version</p>
+<p style="text-align: center;"><button style="background-color: purple; color: white;" onclick="location.href='solutions/version.html'">=> See all versions <=</button></p>
+</body>
+<script>
+function reLoad() {
+  const Language = document.getElementById("language").value;
+  const OtherLanguage = "ja";
+
+  if (Language === OtherLanguage){
+    window.location.href="index-ja.html";
+  } else {
+    window.location.reload;
+  }
+}
+</script>
+</html>
