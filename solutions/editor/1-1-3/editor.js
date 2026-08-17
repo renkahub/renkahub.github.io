@@ -324,3 +324,77 @@ openNewTabBtn.addEventListener("click", () => {
 
 // 初期タブ
 createTab("html");
+
+let isDirty = false;
+
+// 編集されたら「未保存状態」にする
+editor.addEventListener("input", () => {
+  isDirty = true;
+});
+
+// 保存したら「保存済み」にする
+saveBtn.addEventListener("click", () => {
+  isDirty = false;
+});
+
+// ダイアログ要素
+const dialog = document.getElementById("save-confirm-dialog");
+const dialogSave = document.getElementById("dialog-save");
+const dialogNoSave = document.getElementById("dialog-nosave");
+const dialogCancel = document.getElementById("dialog-cancel");
+
+let pendingUnloadEvent = null;
+
+// beforeunload を使って「閉じる直前に止める」
+window.addEventListener("beforeunload", (e) => {
+  if (!isDirty) return; // 編集されていなければ何もしない
+
+  e.preventDefault();
+  e.returnValue = "";
+
+  // 自作ダイアログを表示
+  dialog.classList.remove("hidden");
+
+  // このイベントを後で使うために保存
+  pendingUnloadEvent = e;
+});
+
+// 保存する
+dialogSave.addEventListener("click", () => {
+  const file = files.find(f => f.id === activeFile);
+  if (file) {
+    const ext = file.lang === "python" ? "py" : file.lang;
+    const fileName = `${file.name}.${ext}`;
+    const blob = new Blob([file.code], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  }
+
+  isDirty = false;
+  dialog.classList.add("hidden");
+
+  // ページを閉じる
+  window.removeEventListener("beforeunload", beforeUnloadHandler);
+  window.location.reload();
+});
+
+// 保存しないで閉じる
+dialogNoSave.addEventListener("click", () => {
+  isDirty = false;
+  dialog.classList.add("hidden");
+
+  window.removeEventListener("beforeunload", beforeUnloadHandler);
+  window.location.reload();
+});
+
+// キャンセル（閉じない）
+dialogCancel.addEventListener("click", () => {
+  dialog.classList.add("hidden");
+  pendingUnloadEvent = null;
+});
